@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mrs. GREEN APPLE ランキング</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        ol {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        li {
+            margin: 10px 0;
+        }
+        a {
+            text-decoration: none;
+            color: #007BFF;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mrs. GREEN APPLE - トップトラック</h1>
+    <p>Spotifyからリアルタイムでランキングを取得しています...</p>
+    <div id="ranking">
+        <!-- ランキングデータがここに挿入されます -->
+    </div>
+
+    <script>
+        // Spotify API クライアントIDとシークレット
+        const clientId = 'cff1a81cc68a4e5cb943e06070f9b01a';
+        const clientSecret = 'eb1b57df0ade4f07bdf8043358df19fdSS';
+
+        // アクセストークンを取得する関数
+        async function getAccessToken() {
+            const response = await fetch('https://accounts.spotify.com/api/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret),
+                },
+                body: 'grant_type=client_credentials',
+            });
+            const data = await response.json();
+            return data.access_token;
+        }
+
+        // アーティストIDを取得する関数
+        async function searchArtist(name, accessToken) {
+            const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(name)}&type=artist&limit=1`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+            });
+            const data = await response.json();
+            return data.artists.items[0].id;
+        }
+
+        // アーティストのトップトラックを取得する関数
+        async function getArtistTopTracks(artistId, accessToken) {
+            const response = await fetch(`https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=JP`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+            });
+            const data = await response.json();
+            return data.tracks;
+        }
+
+        // ランキングデータを取得してHTMLに表示
+        async function displayTopTracks() {
+            try {
+                const accessToken = await getAccessToken();
+                const artistId = await searchArtist('Mrs. GREEN APPLE', accessToken);
+                const topTracks = await getArtistTopTracks(artistId, accessToken);
+
+                const rankingDiv = document.getElementById('ranking');
+                let html = '<ol>';
+                topTracks.forEach(track => {
+                    html += `
+                        <li>
+                            ${track.name} - <a href="${track.external_urls.spotify}" target="_blank">Spotifyで再生</a>
+                        </li>
+                    `;
+                });
+                html += '</ol>';
+                rankingDiv.innerHTML = html;
+            } catch (error) {
+                console.error('データ取得エラー:', error);
+                document.getElementById('ranking').innerHTML = '<p>データの取得に失敗しました。</p>';
+            }
+        }
+
+        // 初期化
+        displayTopTracks();
+    </script>
+</body>
+</html>
